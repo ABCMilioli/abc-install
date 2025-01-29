@@ -6,6 +6,9 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# Variável global para o nome da rede
+NETWORK_NAME=""
+
 # Função para imprimir mensagens com cores
 print_message() {
     echo -e "${BLUE}[SETUP]${NC} $1"
@@ -27,8 +30,23 @@ check_root() {
     fi
 }
 
+# Verifica se o Docker está instalado
+check_docker() {
+    if ! command -v docker &> /dev/null; then
+        return 1
+    fi
+    return 0
+}
+
 # Instala o Docker
 install_docker() {
+    print_message "Verificando instalação do Docker..."
+    
+    if check_docker; then
+        print_message "Docker já está instalado"
+        return 0
+    fi
+    
     print_message "Instalando Docker..."
     
     # Atualiza os pacotes
@@ -69,7 +87,10 @@ init_swarm() {
     if docker info | grep -q "Swarm: active"; then
         print_message "Swarm já está ativo"
     else
-        docker swarm init
+        docker swarm init || {
+            print_error "Falha ao inicializar o Swarm"
+            exit 1
+        }
         print_success "Swarm inicializado com sucesso!"
     fi
 }
@@ -77,11 +98,24 @@ init_swarm() {
 # Cria rede overlay
 create_network() {
     print_message "Configurando rede..."
-    read -p "Digite o nome da rede: " network_name
     
-    # Cria a rede overlay
-    docker network create -d overlay --attachable "$network_name"
-    print_success "Rede $network_name criada com sucesso!"
+    while true; do
+        read -p "Digite o nome da rede: " NETWORK_NAME
+        
+        # Verifica se a rede já existe
+        if docker network ls | grep -q "$NETWORK_NAME"; then
+            print_message "Rede $NETWORK_NAME já existe"
+            break
+        else
+            # Cria a rede overlay
+            if docker network create -d overlay --attachable "$NETWORK_NAME"; then
+                print_success "Rede $NETWORK_NAME criada com sucesso!"
+                break
+            else
+                print_error "Falha ao criar a rede. Tente outro nome."
+            fi
+        fi
+    done
 }
 
 # Instala o Traefik
@@ -92,37 +126,6 @@ install_traefik() {
     # Cria diretório para o Traefik
     mkdir -p /opt/traefik
     
-    # Cria arquivo de configuração do Traefik
-    cat > /opt/traefik/traefik.yml <<EOF
-api:
-  dashboard: true
-
-entryPoints:
-  web:
-    address: ":80"
-    http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
-  websecure:
-    address: ":443"
-
-providers:
-  docker:
-    endpoint: "unix:///var/run/docker.sock"
-    swarmMode: true
-    exposedByDefault: false
-
-certificatesResolvers:
-  letsencrypt:
-    acme:
-      email: ${email}
-      storage: /certificates/acme.json
-      httpChallenge:
-        entryPoint: web
-EOF
-
     # Deploy Traefik
     docker stack deploy -c <(cat <<EOF
 version: '3.8'
@@ -147,7 +150,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-certificates:/certificates
     networks:
-      - traefik-public
+      - ${NETWORK_NAME}
     deploy:
       placement:
         constraints:
@@ -157,10 +160,13 @@ volumes:
   traefik-certificates:
 
 networks:
-  traefik-public:
+  ${NETWORK_NAME}:
     external: true
 EOF
-) traefik
+) traefik || {
+    print_error "Falha ao instalar o Traefik"
+    exit 1
+}
 
     print_success "Traefik instalado com sucesso!"
 }
@@ -181,7 +187,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
     networks:
-      - traefik-public
+      - ${NETWORK_NAME}
     deploy:
       placement:
         constraints:
@@ -197,10 +203,13 @@ volumes:
   portainer_data:
 
 networks:
-  traefik-public:
+  ${NETWORK_NAME}:
     external: true
 EOF
-) portainer
+) portainer || {
+    print_error "Falha ao instalar o Portainer"
+    exit 1
+}
 
     print_success "Portainer instalado com sucesso!"
 }
