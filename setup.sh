@@ -151,41 +151,36 @@ get_network_name() {
     echo -e "${GREEN}Exemplo de nome: traefik-public${NC}"
     echo ""
     
-    while true; do
+    NETWORK_NAME=""
+    until [ ! -z "$NETWORK_NAME" ]; do
         read -p "Digite o nome da rede que deseja criar: " NETWORK_NAME
         
         if [ -z "$NETWORK_NAME" ]; then
             print_error "O nome da rede não pode estar vazio"
             sleep 2
-            continue
         fi
-        
-        echo ""
-        echo -e "Nome da rede informado: ${GREEN}$NETWORK_NAME${NC}"
-        echo ""
-        read -p "O nome está correto? [y/n]: " confirm
-        
-        if [[ "$confirm" =~ ^[Yy]$ ]]; then
-            if ! docker network ls | grep -q "$NETWORK_NAME"; then
-                if docker network create -d overlay --attachable "$NETWORK_NAME"; then
-                    print_success "Rede $NETWORK_NAME criada com sucesso!"
-                else
-                    print_error "Falha ao criar a rede"
-                    exit 1
-                fi
-            else
-                print_message "Rede $NETWORK_NAME já existe"
-            fi
-            break
-        fi
-        
-        clear
-        print_message "Configuração da Rede"
-        echo ""
-        echo -e "${GREEN}A rede será usada para comunicação entre Traefik e Portainer${NC}"
-        echo -e "${GREEN}Exemplo de nome: traefik-public${NC}"
-        echo ""
     done
+    
+    echo ""
+    echo -e "Nome da rede informado: ${GREEN}$NETWORK_NAME${NC}"
+    echo ""
+    read -p "O nome está correto? [y/n]: " confirm
+    
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        if ! docker network ls | grep -q "$NETWORK_NAME"; then
+            if docker network create -d overlay --attachable "$NETWORK_NAME"; then
+                print_success "Rede $NETWORK_NAME criada com sucesso!"
+            else
+                print_error "Falha ao criar a rede"
+                exit 1
+            fi
+        else
+            print_message "Rede $NETWORK_NAME já existe"
+        fi
+    else
+        get_network_name
+        return
+    fi
     
     echo ""
     read -p "Pressione ENTER para continuar..."
