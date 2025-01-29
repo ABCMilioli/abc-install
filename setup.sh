@@ -142,118 +142,62 @@ init_swarm() {
     fi
 }
 
-# Função para coletar nome da rede
-get_network_name() {
+# Função para coletar todas as informações necessárias
+get_user_inputs() {
     clear
-    print_message "Configuração da Rede"
+    print_message "Configuração Inicial"
     echo ""
-    echo -e "${GREEN}A rede será usada para comunicação entre Traefik e Portainer${NC}"
-    echo -e "${GREEN}Exemplo de nome: traefik-public${NC}"
+    echo -e "${GREEN}Vamos coletar algumas informações antes de iniciar a instalação${NC}"
     echo ""
     
-    NETWORK_NAME=""
-    until [ ! -z "$NETWORK_NAME" ]; do
-        read -p "Digite o nome da rede que deseja criar: " NETWORK_NAME
-        
-        if [ -z "$NETWORK_NAME" ]; then
-            print_error "O nome da rede não pode estar vazio"
-            sleep 5
-        fi
+    # Nome da rede
+    echo -e "${GREEN}1. Nome da rede Docker${NC}"
+    echo -e "A rede será usada para comunicação entre Traefik e Portainer"
+    echo -e "Exemplo: traefik-public"
+    echo ""
+    read -p "Digite o nome da rede: " NETWORK_NAME
+    while [ -z "$NETWORK_NAME" ]; do
+        print_error "O nome da rede não pode estar vazio"
+        read -p "Digite o nome da rede: " NETWORK_NAME
     done
-    
     echo ""
-    echo -e "Nome da rede informado: ${GREEN}$NETWORK_NAME${NC}"
-    echo ""
-    read -p "O nome está correto? [y/n]: " confirm
     
-    if [[ "$confirm" =~ ^[Yy]$ ]]; then
-        if ! docker network ls | grep -q "$NETWORK_NAME"; then
-            if docker network create -d overlay --attachable "$NETWORK_NAME"; then
-                print_success "Rede $NETWORK_NAME criada com sucesso!"
-            else
-                print_error "Falha ao criar a rede"
-                exit 1
-            fi
-        else
-            print_message "Rede $NETWORK_NAME já existe"
-        fi
-    else
-        get_network_name
+    # Email para Traefik
+    echo -e "${GREEN}2. Email para certificados SSL${NC}"
+    echo -e "O Traefik precisa de um email válido para gerar certificados SSL"
+    echo -e "Exemplo: seu.email@dominio.com"
+    echo ""
+    read -p "Digite seu email: " TRAEFIK_EMAIL
+    while [[ ! "$TRAEFIK_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; do
+        print_error "Email inválido"
+        read -p "Digite seu email: " TRAEFIK_EMAIL
+    done
+    echo ""
+    
+    # URL do Portainer
+    echo -e "${GREEN}3. URL do Portainer${NC}"
+    echo -e "O Portainer precisa de uma URL para acesso via navegador"
+    echo -e "Exemplo: portainer.seudominio.com"
+    echo ""
+    read -p "Digite a URL do Portainer: " PORTAINER_URL
+    while [[ ! "$PORTAINER_URL" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; do
+        print_error "URL inválida"
+        read -p "Digite a URL do Portainer: " PORTAINER_URL
+    done
+    echo ""
+    
+    # Confirma todas as informações
+    echo -e "${GREEN}Confirme as informações:${NC}"
+    echo -e "Nome da rede: ${GREEN}$NETWORK_NAME${NC}"
+    echo -e "Email: ${GREEN}$TRAEFIK_EMAIL${NC}"
+    echo -e "URL do Portainer: ${GREEN}$PORTAINER_URL${NC}"
+    echo ""
+    read -p "As informações estão corretas? [y/n]: " confirm
+    
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        get_user_inputs
         return
     fi
-    
-    echo ""
-    read -p "Pressione ENTER para continuar..."
-}
-
-# Função para coletar email do Traefik
-get_traefik_email() {
-    clear
-    print_message "Configuração do Traefik"
-    echo ""
-    echo -e "${GREEN}O Traefik precisa de um email válido para gerar certificados SSL${NC}"
-    echo -e "${GREEN}Exemplo: seu.email@dominio.com${NC}"
-    echo ""
-    
-    while true; do
-        read -p "Digite seu email para o Let's Encrypt: " email
-        echo ""
-        echo -e "Email informado: ${GREEN}$email${NC}"
-        echo ""
-        read -p "O email está correto? (y/n): " confirm
-        
-        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
-            if [ -z "$email" ] || [[ ! "$email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
-                print_error "Email inválido"
-                sleep 5
-                continue
-            fi
-            
-            TRAEFIK_EMAIL="$email"
-            print_success "Email configurado com sucesso!"
-            echo ""
-            read -p "Pressione ENTER para continuar..."
-            break
-        else
-            echo "Ok, vamos tentar novamente..."
-            echo ""
-        fi
-    done
-}
-
-# Função para coletar URL do Portainer
-get_portainer_url() {
-    clear
-    print_message "Configuração do Portainer"
-    echo ""
-    echo -e "${GREEN}O Portainer precisa de uma URL para acesso via navegador${NC}"
-    echo -e "${GREEN}Exemplo: portainer.seudominio.com${NC}"
-    echo ""
-    
-    while true; do
-        read -p "Digite a URL para acesso ao Portainer: " portainer_url
-        echo ""
-        echo -e "URL informada: ${GREEN}$portainer_url${NC}"
-        echo ""
-        read -p "A URL está correta? (y/n): " confirm
-        
-        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
-            if [ -z "$portainer_url" ] || [[ ! "$portainer_url" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
-                print_error "URL inválida"
-                sleep 5
-                continue
-            fi
-            
-            PORTAINER_URL="$portainer_url"
-            print_success "URL configurada com sucesso!"
-            echo ""
-            read -p "Pressione ENTER para continuar..."
-            break
-        else
-            echo "Ok, vamos tentar novamente..."
-            echo ""
-        fi
-    done
 }
 
 # Instala o Traefik
@@ -420,10 +364,13 @@ EOF
     read -p "Pressione ENTER para continuar..."
 }
 
-# Função principal modificada
+# Modifique a função main para usar a nova função
 main() {
     clear
     check_root
+    
+    # Coleta todas as informações primeiro
+    get_user_inputs
     
     print_message "Iniciando instalação..."
     
@@ -431,17 +378,23 @@ main() {
     install_docker
     init_swarm
     
-    # Coleta informações necessárias
-    get_network_name
-    get_traefik_email
-    get_portainer_url
+    # Cria a rede
+    if ! docker network ls | grep -q "$NETWORK_NAME"; then
+        if ! docker network create -d overlay --attachable "$NETWORK_NAME"; then
+            print_error "Falha ao criar a rede"
+            exit 1
+        fi
+        print_success "Rede $NETWORK_NAME criada com sucesso!"
+    else
+        print_message "Rede $NETWORK_NAME já existe"
+    fi
     
     # Instala os serviços
     install_traefik
     install_portainer
     
     print_success "Instalação concluída!"
-    echo -e "${GREEN}Acesse o Portainer em: https://${portainer_url}${NC}"
+    echo -e "${GREEN}Acesse o Portainer em: https://${PORTAINER_URL}${NC}"
 }
 
 # Executa o script
