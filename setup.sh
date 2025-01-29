@@ -142,9 +142,10 @@ init_swarm() {
     fi
 }
 
-# Cria rede overlay
-create_network() {
-    print_message "Configurando rede..."
+# Função para coletar nome da rede
+get_network_name() {
+    clear
+    print_message "Configuração da Rede"
     echo ""
     echo -e "${GREEN}A rede será usada para comunicação entre Traefik e Portainer${NC}"
     echo -e "${GREEN}Exemplo de nome: traefik-public${NC}"
@@ -153,38 +154,101 @@ create_network() {
     while true; do
         read -p "Digite o nome da rede que deseja criar: " NETWORK_NAME
         echo ""
+        echo -e "Nome da rede informado: ${GREEN}$NETWORK_NAME${NC}"
+        echo ""
+        read -p "O nome está correto? (y/n): " confirm
         
-        # Verifica se o nome da rede está vazio
-        if [ -z "$NETWORK_NAME" ]; then
-            print_error "O nome da rede não pode estar vazio"
-            continue
-        fi
-        
-        # Confirma com o usuário
-        read -p "Confirma o nome da rede '$NETWORK_NAME'? (y/n): " confirm
         if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
-            # Verifica se a rede já existe
-            if docker network ls | grep -q "$NETWORK_NAME"; then
-                print_message "Rede $NETWORK_NAME já existe"
-                break
-            else
-                # Cria a rede overlay
-                if docker network create -d overlay --attachable "$NETWORK_NAME"; then
-                    print_success "Rede $NETWORK_NAME criada com sucesso!"
-                    break
-                else
-                    print_error "Falha ao criar a rede. Tente outro nome."
+            if [ -z "$NETWORK_NAME" ]; then
+                print_error "O nome da rede não pode estar vazio"
+                continue
+            fi
+            
+            # Cria a rede overlay se não existir
+            if ! docker network ls | grep -q "$NETWORK_NAME"; then
+                if ! docker network create -d overlay --attachable "$NETWORK_NAME"; then
+                    print_error "Falha ao criar a rede"
+                    exit 1
                 fi
             fi
+            
+            print_success "Rede $NETWORK_NAME configurada com sucesso!"
+            echo ""
+            read -p "Pressione ENTER para continuar..."
+            break
         else
-            echo "Ok, vamos tentar novamente."
-            continue
+            echo "Ok, vamos tentar novamente..."
+            echo ""
         fi
     done
-    
-    # Pausa para o usuário ver o resultado
+}
+
+# Função para coletar email do Traefik
+get_traefik_email() {
+    clear
+    print_message "Configuração do Traefik"
     echo ""
-    read -p "Pressione ENTER para continuar com a instalação..."
+    echo -e "${GREEN}O Traefik precisa de um email válido para gerar certificados SSL${NC}"
+    echo -e "${GREEN}Exemplo: seu.email@dominio.com${NC}"
+    echo ""
+    
+    while true; do
+        read -p "Digite seu email para o Let's Encrypt: " email
+        echo ""
+        echo -e "Email informado: ${GREEN}$email${NC}"
+        echo ""
+        read -p "O email está correto? (y/n): " confirm
+        
+        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+            if [ -z "$email" ] || [[ ! "$email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+                print_error "Email inválido"
+                continue
+            fi
+            
+            TRAEFIK_EMAIL="$email"
+            print_success "Email configurado com sucesso!"
+            echo ""
+            read -p "Pressione ENTER para continuar..."
+            break
+        else
+            echo "Ok, vamos tentar novamente..."
+            echo ""
+        fi
+    done
+}
+
+# Função para coletar URL do Portainer
+get_portainer_url() {
+    clear
+    print_message "Configuração do Portainer"
+    echo ""
+    echo -e "${GREEN}O Portainer precisa de uma URL para acesso via navegador${NC}"
+    echo -e "${GREEN}Exemplo: portainer.seudominio.com${NC}"
+    echo ""
+    
+    while true; do
+        read -p "Digite a URL para acesso ao Portainer: " portainer_url
+        echo ""
+        echo -e "URL informada: ${GREEN}$portainer_url${NC}"
+        echo ""
+        read -p "A URL está correta? (y/n): " confirm
+        
+        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+            if [ -z "$portainer_url" ] || [[ ! "$portainer_url" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+                print_error "URL inválida"
+                continue
+            fi
+            
+            PORTAINER_URL="$portainer_url"
+            print_success "URL configurada com sucesso!"
+            echo ""
+            read -p "Pressione ENTER para continuar..."
+            break
+        else
+            echo "Ok, vamos tentar novamente..."
+            echo ""
+        fi
+    done
 }
 
 # Instala o Traefik
@@ -351,16 +415,23 @@ EOF
     read -p "Pressione ENTER para continuar..."
 }
 
-# Função principal
+# Função principal modificada
 main() {
     clear
     check_root
     
     print_message "Iniciando instalação..."
     
+    # Instala Docker e inicializa Swarm
     install_docker
     init_swarm
-    create_network
+    
+    # Coleta informações necessárias
+    get_network_name
+    get_traefik_email
+    get_portainer_url
+    
+    # Instala os serviços
     install_traefik
     install_portainer
     
