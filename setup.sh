@@ -142,71 +142,86 @@ init_swarm() {
     fi
 }
 
-# Função para coletar todas as informações necessárias
+# Função para coletar o nome da rede
+get_network_name() {
+    clear
+    print_message "Configuração da Rede"
+    echo ""
+    echo -e "${GREEN}A rede será usada para comunicação entre Traefik e Portainer${NC}"
+    echo -e "${GREEN}Exemplo: traefik-public${NC}"
+    echo ""
+    read -p "Digite o nome da rede: " NETWORK_NAME
+    
+    if [ -z "$NETWORK_NAME" ]; then
+        print_error "O nome da rede não pode estar vazio"
+        sleep 2
+        get_network_name
+    fi
+}
+
+# Função para coletar o email
+get_traefik_email() {
+    clear
+    print_message "Configuração do Email"
+    echo ""
+    echo -e "${GREEN}O Traefik precisa de um email válido para gerar certificados SSL${NC}"
+    echo -e "${GREEN}Exemplo: seu.email@dominio.com${NC}"
+    echo ""
+    read -p "Digite seu email: " TRAEFIK_EMAIL
+    
+    if [[ ! "$TRAEFIK_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+        print_error "Email inválido"
+        sleep 2
+        get_traefik_email
+    fi
+}
+
+# Função para coletar a URL do Portainer
+get_portainer_url() {
+    clear
+    print_message "Configuração do Portainer"
+    echo ""
+    echo -e "${GREEN}O Portainer precisa de uma URL para acesso via navegador${NC}"
+    echo -e "${GREEN}Exemplo: portainer.seudominio.com${NC}"
+    echo ""
+    read -p "Digite a URL do Portainer: " PORTAINER_URL
+    
+    if [[ ! "$PORTAINER_URL" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+        print_error "URL inválida"
+        sleep 2
+        get_portainer_url
+    fi
+}
+
+# Função para confirmar as informações
+confirm_inputs() {
+    clear
+    print_message "Confirmação das Informações"
+    echo ""
+    echo -e "Nome da rede: ${GREEN}$NETWORK_NAME${NC}"
+    echo -e "Email: ${GREEN}$TRAEFIK_EMAIL${NC}"
+    echo -e "URL do Portainer: ${GREEN}$PORTAINER_URL${NC}"
+    echo ""
+    read -p "As informações estão corretas? [y/n]: " confirm
+    
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        get_user_inputs
+    fi
+}
+
+# Função principal de coleta de informações
 get_user_inputs() {
-    # Declaração das variáveis globais
-    NETWORK_NAME=""
-    TRAEFIK_EMAIL=""
-    PORTAINER_URL=""
-
-    while true; do
-        clear
-        print_message "Configuração Inicial"
-        echo ""
-        echo -e "${GREEN}Vamos coletar algumas informações antes de iniciar a instalação${NC}"
-        echo ""
-        
-        # Nome da rede
-        echo -e "${GREEN}1. Nome da rede Docker${NC}"
-        echo -e "A rede será usada para comunicação entre Traefik e Portainer"
-        echo -e "Exemplo: traefik-public"
-        echo ""
-        read -p "Digite o nome da rede: " NETWORK_NAME
-        
-        if [ -z "$NETWORK_NAME" ]; then
-            print_error "O nome da rede não pode estar vazio"
-            sleep 2
-            continue
-        fi
-
-        # Email para Traefik
-        echo -e "\n${GREEN}2. Email para certificados SSL${NC}"
-        echo -e "O Traefik precisa de um email válido para gerar certificados SSL"
-        echo -e "Exemplo: seu.email@dominio.com"
-        echo ""
-        read -p "Digite seu email: " TRAEFIK_EMAIL
-        
-        if [[ ! "$TRAEFIK_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
-            print_error "Email inválido"
-            sleep 2
-            continue
-        fi
-
-        # URL do Portainer
-        echo -e "\n${GREEN}3. URL do Portainer${NC}"
-        echo -e "O Portainer precisa de uma URL para acesso via navegador"
-        echo -e "Exemplo: portainer.seudominio.com"
-        echo ""
-        read -p "Digite a URL do Portainer: " PORTAINER_URL
-        
-        if [[ ! "$PORTAINER_URL" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
-            print_error "URL inválida"
-            sleep 2
-            continue
-        fi
-
-        # Confirma todas as informações
-        echo -e "\n${GREEN}Confirme as informações:${NC}"
-        echo -e "Nome da rede: ${GREEN}$NETWORK_NAME${NC}"
-        echo -e "Email: ${GREEN}$TRAEFIK_EMAIL${NC}"
-        echo -e "URL do Portainer: ${GREEN}$PORTAINER_URL${NC}"
-        echo ""
-        read -p "As informações estão corretas? [y/n]: " confirm
-
-        if [[ "$confirm" =~ ^[Yy]$ ]]; then
-            break
-        fi
-    done
+    clear
+    print_message "Configuração Inicial"
+    echo ""
+    echo -e "${GREEN}Vamos coletar algumas informações antes de iniciar a instalação${NC}"
+    echo ""
+    sleep 2
+    
+    get_network_name
+    get_traefik_email
+    get_portainer_url
+    confirm_inputs
 }
 
 # Instala o Traefik
