@@ -84,7 +84,7 @@ get_network_name() {
     echo ""
     echo -e "\e[97mPasso${amarelo} 1/3${reset}"
     echo -en "${amarelo}Digite o nome da rede Docker (ex: traefik-public): ${reset}"
-    read -r NETWORK_NAME
+    read -r NETWORK_NAME </dev/tty
     echo ""
 }
 
@@ -95,7 +95,7 @@ get_traefik_email() {
     echo ""
     echo -e "\e[97mPasso${amarelo} 2/3${reset}"
     echo -en "${amarelo}Digite o email para certificados SSL (ex: seu.email@dominio.com): ${reset}"
-    read -r TRAEFIK_EMAIL
+    read -r TRAEFIK_EMAIL </dev/tty
     echo ""
 }
 
@@ -106,7 +106,7 @@ get_portainer_url() {
     echo ""
     echo -e "\e[97mPasso${amarelo} 3/3${reset}"
     echo -en "${amarelo}Digite a URL para o Portainer (ex: portainer.seudominio.com): ${reset}"
-    read -r PORTAINER_URL
+    read -r PORTAINER_URL </dev/tty
     echo ""
 }
 
@@ -119,7 +119,7 @@ confirm_inputs() {
     echo -e "${amarelo}Email:${reset} $TRAEFIK_EMAIL"
     echo -e "${amarelo}URL do Portainer:${reset} $PORTAINER_URL"
     echo ""
-    read -p "As informações estão corretas? (Y/N): " confirmacao
+    read -p "As informações estão corretas? (Y/N): " confirmacao </dev/tty
     
     if [ "$confirmacao" = "Y" ] || [ "$confirmacao" = "y" ]; then
         return 0
