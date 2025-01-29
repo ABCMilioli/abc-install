@@ -144,81 +144,79 @@ init_swarm() {
 
 # Função para coletar todas as informações
 get_user_inputs() {
-    clear
-    print_message "Configuração Inicial"
-    echo ""
-    echo -e "${GREEN}Vamos coletar algumas informações antes de iniciar a instalação${NC}"
-    echo ""
+    # Declaração das variáveis
+    NETWORK_NAME=""
+    TRAEFIK_EMAIL=""
+    PORTAINER_URL=""
     
-    # Loop principal para coletar todas as informações
     while true; do
-        # Nome da rede
-        echo -e "\e[97mPasso${GREEN} 1/3${NC}"
-        echo -e "${GREEN}Nome da rede Docker${NC}"
+        # Limpa a tela e mostra o cabeçalho
+        clear
+        print_message "Configuração Inicial"
+        echo ""
+        
+        # Passo 1 - Nome da rede
+        echo -e "${GREEN}Passo 1/3 - Nome da rede Docker${NC}"
         echo -e "A rede será usada para comunicação entre Traefik e Portainer"
         echo -e "Exemplo: traefik-public"
         echo ""
-        read -p "Digite o nome da rede: " NETWORK_NAME
-        echo ""
+        read -r NETWORK_NAME
         
-        # Email para Traefik
-        echo -e "\e[97mPasso${GREEN} 2/3${NC}"
-        echo -e "${GREEN}Email para certificados SSL${NC}"
+        # Passo 2 - Email
+        clear
+        print_message "Configuração Inicial"
+        echo -e "${GREEN}Passo 2/3 - Email para certificados SSL${NC}"
         echo -e "O Traefik precisa de um email válido para gerar certificados SSL"
         echo -e "Exemplo: seu.email@dominio.com"
         echo ""
-        read -p "Digite seu email: " TRAEFIK_EMAIL
-        echo ""
+        read -r TRAEFIK_EMAIL
         
-        # URL do Portainer
-        echo -e "\e[97mPasso${GREEN} 3/3${NC}"
-        echo -e "${GREEN}URL do Portainer${NC}"
+        # Passo 3 - URL
+        clear
+        print_message "Configuração Inicial"
+        echo -e "${GREEN}Passo 3/3 - URL do Portainer${NC}"
         echo -e "O Portainer precisa de uma URL para acesso via navegador"
         echo -e "Exemplo: portainer.seudominio.com"
         echo ""
-        read -p "Digite a URL do Portainer: " PORTAINER_URL
-        echo ""
+        read -r PORTAINER_URL
         
-        # Limpa a tela para mostrar o resumo
+        # Mostra resumo das informações
         clear
         print_message "Confirme as informações"
         echo ""
-        
-        # Mostra todas as informações para confirmação
-        echo -e "${GREEN}Nome da rede:${NC} $NETWORK_NAME"
-        echo -e "${GREEN}Email:${NC} $TRAEFIK_EMAIL"
-        echo -e "${GREEN}URL do Portainer:${NC} $PORTAINER_URL"
+        echo -e "Nome da rede: ${GREEN}$NETWORK_NAME${NC}"
+        echo -e "Email: ${GREEN}$TRAEFIK_EMAIL${NC}"
+        echo -e "URL do Portainer: ${GREEN}$PORTAINER_URL${NC}"
         echo ""
+        read -p "As informações estão corretas? (Y/N): " -r confirmacao
         
-        # Confirma as informações
-        read -p "As informações estão corretas? (Y/N): " confirmacao
-        if [ "$confirmacao" = "Y" ] || [ "$confirmacao" = "y" ]; then
-            # Valida as informações antes de prosseguir
+        # Valida a resposta
+        if [[ "$confirmacao" =~ ^[Yy]$ ]]; then
+            # Valida as informações
             if [ -z "$NETWORK_NAME" ]; then
                 print_error "O nome da rede não pode estar vazio"
                 sleep 2
-                clear
                 continue
             fi
             
             if [[ ! "$TRAEFIK_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
                 print_error "Email inválido"
                 sleep 2
-                clear
                 continue
             fi
             
             if [[ ! "$PORTAINER_URL" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
                 print_error "URL inválida"
                 sleep 2
-                clear
                 continue
             fi
             
+            # Se chegou aqui, todas as informações estão corretas
             break
-        else
-            clear
         fi
+        
+        # Se respondeu não, limpa a tela e recomeça
+        clear
     done
 }
 
