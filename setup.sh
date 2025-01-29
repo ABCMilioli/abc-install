@@ -150,17 +150,14 @@ get_user_inputs() {
     PORTAINER_URL=""
     
     while true; do
-        # Limpa a tela e mostra o cabeçalho
+        # Passo 1 - Nome da rede
         clear
         print_message "Configuração Inicial"
-        echo ""
-        
-        # Passo 1 - Nome da rede
         echo -e "${GREEN}Passo 1/3 - Nome da rede Docker${NC}"
         echo -e "A rede será usada para comunicação entre Traefik e Portainer"
         echo -e "Exemplo: traefik-public"
         echo ""
-        read -r NETWORK_NAME
+        read -p "Digite o nome da rede: " NETWORK_NAME
         
         # Passo 2 - Email
         clear
@@ -169,7 +166,7 @@ get_user_inputs() {
         echo -e "O Traefik precisa de um email válido para gerar certificados SSL"
         echo -e "Exemplo: seu.email@dominio.com"
         echo ""
-        read -r TRAEFIK_EMAIL
+        read -p "Digite seu email: " TRAEFIK_EMAIL
         
         # Passo 3 - URL
         clear
@@ -178,7 +175,7 @@ get_user_inputs() {
         echo -e "O Portainer precisa de uma URL para acesso via navegador"
         echo -e "Exemplo: portainer.seudominio.com"
         echo ""
-        read -r PORTAINER_URL
+        read -p "Digite a URL do Portainer: " PORTAINER_URL
         
         # Mostra resumo das informações
         clear
@@ -188,10 +185,9 @@ get_user_inputs() {
         echo -e "Email: ${GREEN}$TRAEFIK_EMAIL${NC}"
         echo -e "URL do Portainer: ${GREEN}$PORTAINER_URL${NC}"
         echo ""
-        read -p "As informações estão corretas? (Y/N): " -r confirmacao
+        read -p "As informações estão corretas? [y/n]: " confirm
         
-        # Valida a resposta
-        if [[ "$confirmacao" =~ ^[Yy]$ ]]; then
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
             # Valida as informações
             if [ -z "$NETWORK_NAME" ]; then
                 print_error "O nome da rede não pode estar vazio"
