@@ -144,53 +144,70 @@ init_swarm() {
 
 # Função para coletar o nome da rede
 get_network_name() {
-    clear
-    print_message "Configuração da Rede"
-    echo ""
-    echo -e "${GREEN}A rede será usada para comunicação entre Traefik e Portainer${NC}"
-    echo -e "${GREEN}Exemplo: traefik-public${NC}"
-    echo ""
-    read -p "Digite o nome da rede: " NETWORK_NAME
+    local input_name=""
     
-    if [ -z "$NETWORK_NAME" ]; then
-        print_error "O nome da rede não pode estar vazio"
-        sleep 2
-        get_network_name
-    fi
+    while [ -z "$input_name" ]; do
+        clear
+        print_message "Configuração da Rede"
+        echo ""
+        echo -e "${GREEN}A rede será usada para comunicação entre Traefik e Portainer${NC}"
+        echo -e "${GREEN}Exemplo: traefik-public${NC}"
+        echo ""
+        read -p "Digite o nome da rede: " input_name
+        
+        if [ -z "$input_name" ]; then
+            print_error "O nome da rede não pode estar vazio"
+            sleep 2
+        fi
+    done
+    
+    NETWORK_NAME="$input_name"
 }
 
 # Função para coletar o email
 get_traefik_email() {
-    clear
-    print_message "Configuração do Email"
-    echo ""
-    echo -e "${GREEN}O Traefik precisa de um email válido para gerar certificados SSL${NC}"
-    echo -e "${GREEN}Exemplo: seu.email@dominio.com${NC}"
-    echo ""
-    read -p "Digite seu email: " TRAEFIK_EMAIL
+    local input_email=""
     
-    if [[ ! "$TRAEFIK_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+    while true; do
+        clear
+        print_message "Configuração do Email"
+        echo ""
+        echo -e "${GREEN}O Traefik precisa de um email válido para gerar certificados SSL${NC}"
+        echo -e "${GREEN}Exemplo: seu.email@dominio.com${NC}"
+        echo ""
+        read -p "Digite seu email: " input_email
+        
+        if [[ "$input_email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+            TRAEFIK_EMAIL="$input_email"
+            break
+        fi
+        
         print_error "Email inválido"
         sleep 2
-        get_traefik_email
-    fi
+    done
 }
 
 # Função para coletar a URL do Portainer
 get_portainer_url() {
-    clear
-    print_message "Configuração do Portainer"
-    echo ""
-    echo -e "${GREEN}O Portainer precisa de uma URL para acesso via navegador${NC}"
-    echo -e "${GREEN}Exemplo: portainer.seudominio.com${NC}"
-    echo ""
-    read -p "Digite a URL do Portainer: " PORTAINER_URL
+    local input_url=""
     
-    if [[ ! "$PORTAINER_URL" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    while true; do
+        clear
+        print_message "Configuração do Portainer"
+        echo ""
+        echo -e "${GREEN}O Portainer precisa de uma URL para acesso via navegador${NC}"
+        echo -e "${GREEN}Exemplo: portainer.seudominio.com${NC}"
+        echo ""
+        read -p "Digite a URL do Portainer: " input_url
+        
+        if [[ "$input_url" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+            PORTAINER_URL="$input_url"
+            break
+        fi
+        
         print_error "URL inválida"
         sleep 2
-        get_portainer_url
-    fi
+    done
 }
 
 # Função para confirmar as informações
