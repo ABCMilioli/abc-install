@@ -154,7 +154,6 @@ get_network_name() {
     while true; do
         read -p "Digite o nome da rede que deseja criar: " NETWORK_NAME
         
-        # Verifica se o nome da rede está vazio
         if [ -z "$NETWORK_NAME" ]; then
             print_error "O nome da rede não pode estar vazio"
             sleep 2
@@ -164,44 +163,32 @@ get_network_name() {
         echo ""
         echo -e "Nome da rede informado: ${GREEN}$NETWORK_NAME${NC}"
         echo ""
-        sleep 1
-        read -p "O nome está correto? (y/n): " confirm
+        read -p "O nome está correto? [y/n]: " confirm
         
-        case $confirm in
-            [yY]|[yY][eE][sS])
-                # Cria a rede overlay se não existir
-                if ! docker network ls | grep -q "$NETWORK_NAME"; then
-                    if ! docker network create -d overlay --attachable "$NETWORK_NAME"; then
-                        print_error "Falha ao criar a rede"
-                        sleep 2
-                        continue
-                    fi
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            if ! docker network ls | grep -q "$NETWORK_NAME"; then
+                if docker network create -d overlay --attachable "$NETWORK_NAME"; then
+                    print_success "Rede $NETWORK_NAME criada com sucesso!"
+                else
+                    print_error "Falha ao criar a rede"
+                    exit 1
                 fi
-                
-                print_success "Rede $NETWORK_NAME configurada com sucesso!"
-                echo ""
-                read -p "Pressione ENTER para continuar..."
-                return
-                ;;
-            [nN]|[nN][oO])
-                echo ""
-                echo "Ok, vamos tentar novamente..."
-                sleep 2
-                clear
-                print_message "Configuração da Rede"
-                echo ""
-                echo -e "${GREEN}A rede será usada para comunicação entre Traefik e Portainer${NC}"
-                echo -e "${GREEN}Exemplo de nome: traefik-public${NC}"
-                echo ""
-                continue
-                ;;
-            *)
-                print_error "Resposta inválida. Use 'y' para sim ou 'n' para não"
-                sleep 2
-                continue
-                ;;
-        esac
+            else
+                print_message "Rede $NETWORK_NAME já existe"
+            fi
+            break
+        fi
+        
+        clear
+        print_message "Configuração da Rede"
+        echo ""
+        echo -e "${GREEN}A rede será usada para comunicação entre Traefik e Portainer${NC}"
+        echo -e "${GREEN}Exemplo de nome: traefik-public${NC}"
+        echo ""
     done
+    
+    echo ""
+    read -p "Pressione ENTER para continuar..."
 }
 
 # Função para coletar email do Traefik
