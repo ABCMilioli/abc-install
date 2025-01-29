@@ -1,234 +1,138 @@
 #!/bin/bash
 
-# Cores para output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-RED='\033[0;31m'
-NC='\033[0m'
+# Cores
+verde="\e[32m"
+vermelho="\e[31m"
+amarelo="\e[33m"
+azul="\e[34m"
+roxo="\e[35m"
+reset="\e[0m"
 
-# Variável global para o nome da rede
-NETWORK_NAME=""
-
-# Função para imprimir mensagens com cores
-print_message() {
-    echo -e "${BLUE}[SETUP]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Verifica se o script está sendo executado como root
+## Função para verificar se é root
 check_root() {
     if [ "$EUID" -ne 0 ]; then 
-        print_error "Este script precisa ser executado como root"
+        echo -e "${vermelho}Este script precisa ser executado como root${reset}"
+        exit
+    fi
+}
+
+## Função para detectar o sistema operacional
+detect_os() {
+    if [ -f /etc/debian_version ]; then
+        echo -e "${azul}Sistema Debian/Ubuntu detectado${reset}"
+        OS="debian"
+    else
+        echo -e "${vermelho}Sistema operacional não suportado${reset}"
         exit 1
     fi
 }
 
-# Verifica se o Docker está instalado
-check_docker() {
-    if ! command -v docker &> /dev/null; then
-        return 1
-    fi
-    return 0
-}
-
-# Instala o Docker
+## Função para instalar o Docker
 install_docker() {
-    print_message "Verificando instalação do Docker..."
+    echo -e "${azul}Instalando Docker...${reset}"
     
-    if check_docker; then
-        print_message "Docker já está instalado"
-        return 0
-    fi
-    
-    print_message "Instalando Docker..."
-    
-    # Remove versões antigas se existirem
-    apt-get remove -y docker docker-engine docker.io containerd runc || true
-    
-    # Atualiza os pacotes
-    apt-get update
+    # Remove versões antigas
+    apt-get remove -y docker docker-engine docker.io containerd runc
     
     # Instala dependências
+    apt-get update
     apt-get install -y \
         apt-transport-https \
         ca-certificates \
         curl \
         gnupg \
         lsb-release
-
-    # Detecta o sistema operacional
-    if [ -f /etc/debian_version ]; then
-        # Instalação para Debian
-        print_message "Detectado sistema Debian"
-        
-        # Adiciona a chave GPG oficial do Docker
+    
+    if [ "$OS" = "debian" ]; then
+        # Adiciona repositório Docker para Debian/Ubuntu
         install -m 0755 -d /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        curl -fsSL https://download.docker.com/linux/$OS/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
         chmod a+r /etc/apt/keyrings/docker.gpg
-
-        # Configura o repositório
-        echo \
-          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
-          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-          tee /etc/apt/sources.list.d/docker.list > /dev/null
-    else
-        # Instalação para Ubuntu
-        print_message "Detectado sistema Ubuntu"
         
-        # Adiciona a chave GPG oficial do Docker
-        install -m 0755 -d /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        chmod a+r /etc/apt/keyrings/docker.gpg
-
-        # Configura o repositório
         echo \
-          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-          tee /etc/apt/sources.list.d/docker.list > /dev/null
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$OS \
+        $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+        tee /etc/apt/sources.list.d/docker.list > /dev/null
     fi
-
-    # Atualiza o apt com o novo repositório
+    
+    # Instala Docker
     apt-get update
-
-    # Tenta instalar o Docker Engine
-    if ! apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; then
-        print_error "Falha na instalação via apt. Tentando método alternativo..."
-        
-        # Método alternativo usando script get.docker.com
-        curl -fsSL https://get.docker.com | sh
-    fi
-
-    # Verifica se o Docker foi instalado corretamente
-    if ! systemctl is-active --quiet docker; then
-        systemctl start docker || true
-    fi
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     
-    if ! systemctl is-enabled --quiet docker; then
-        systemctl enable docker || true
-    fi
-
-    # Verifica se o Docker está funcionando
-    if ! docker info &> /dev/null; then
-        print_error "Falha na instalação do Docker"
-        exit 1
-    fi
-
-    print_success "Docker instalado com sucesso!"
+    # Inicia e habilita o Docker
+    systemctl start docker
+    systemctl enable docker
     
-    # Pequena pausa para garantir que o serviço está totalmente iniciado
-    sleep 5
+    echo -e "${verde}Docker instalado com sucesso!${reset}"
 }
 
-# Inicializa o Docker Swarm
+## Função para inicializar o Swarm
 init_swarm() {
-    print_message "Inicializando Docker Swarm..."
-    
-    # Verifica se já está no modo swarm
-    if docker info | grep -q "Swarm: active"; then
-        print_message "Swarm já está ativo"
+    echo -e "${azul}Inicializando Docker Swarm...${reset}"
+    if ! docker info | grep -q "Swarm: active"; then
+        docker swarm init
+        echo -e "${verde}Swarm inicializado com sucesso!${reset}"
     else
-        docker swarm init || {
-            print_error "Falha ao inicializar o Swarm"
-            exit 1
-        }
-        print_success "Swarm inicializado com sucesso!"
+        echo -e "${amarelo}Swarm já está ativo${reset}"
     fi
 }
 
-# Função para coletar todas as informações
-get_user_inputs() {
-    # Limpa o terminal
+## Função para coletar informações
+get_inputs() {
     clear
-    
-    # Mostra cabeçalho
-    print_message "Configuração Inicial"
-    echo ""
-    echo -e "${GREEN}Vamos coletar algumas informações antes de iniciar a instalação${NC}"
+    echo -e "${azul}Configuração Inicial${reset}"
     echo ""
     
-    # Inicia o loop principal
+    ## Inicia um Loop até os dados estarem certos
     while true; do
-        # Nome da rede
-        echo -e "\e[97mPasso${GREEN} 1/3${NC}"
-        echo -en "${GREEN}Digite o nome da rede Docker (ex: traefik-public): ${NC}"
-        read -r NETWORK_NAME
+        ## Nome da rede Docker
+        echo -e "\e[97mPasso${amarelo} 1/3${reset}"
+        echo -en "${amarelo}Digite o nome da rede Docker (ex: traefik-public): ${reset}" && read -r NETWORK_NAME
         echo ""
         
-        # Email
-        echo -e "\e[97mPasso${GREEN} 2/3${NC}"
-        echo -en "${GREEN}Digite o email para certificados SSL (ex: seu.email@dominio.com): ${NC}"
-        read -r TRAEFIK_EMAIL
+        ## Email para Traefik
+        echo -e "\e[97mPasso${amarelo} 2/3${reset}"
+        echo -en "${amarelo}Digite o email para certificados SSL (ex: seu.email@dominio.com): ${reset}" && read -r TRAEFIK_EMAIL
         echo ""
         
-        # URL
-        echo -e "\e[97mPasso${GREEN} 3/3${NC}"
-        echo -en "${GREEN}Digite a URL do Portainer (ex: portainer.seudominio.com): ${NC}"
-        read -r PORTAINER_URL
+        ## URL para Portainer
+        echo -e "\e[97mPasso${amarelo} 3/3${reset}"
+        echo -en "${amarelo}Digite a URL para o Portainer (ex: portainer.seudominio.com): ${reset}" && read -r PORTAINER_URL
         echo ""
         
-        # Mostra as informações para confirmação
-        echo -e "${GREEN}Confirme as informações:${NC}"
+        ## Mostra as informações para confirmação
+        echo -e "${azul}Confirme as informações:${reset}"
         echo ""
-        echo -e "Nome da rede: ${GREEN}$NETWORK_NAME${NC}"
-        echo -e "Email: ${GREEN}$TRAEFIK_EMAIL${NC}"
-        echo -e "URL do Portainer: ${GREEN}$PORTAINER_URL${NC}"
+        echo -e "${amarelo}Nome da rede:${reset} $NETWORK_NAME"
+        echo -e "${amarelo}Email:${reset} $TRAEFIK_EMAIL"
+        echo -e "${amarelo}URL do Portainer:${reset} $PORTAINER_URL"
         echo ""
         
-        # Pergunta se as informações estão corretas
         read -p "As informações estão corretas? (Y/N): " confirmacao
         if [ "$confirmacao" = "Y" ] || [ "$confirmacao" = "y" ]; then
-            # Valida as informações
-            if [ -z "$NETWORK_NAME" ]; then
-                print_error "O nome da rede não pode estar vazio"
-                sleep 2
-                clear
-                continue
-            fi
-            
-            if [[ ! "$TRAEFIK_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
-                print_error "Email inválido"
-                sleep 2
-                clear
-                continue
-            fi
-            
-            if [[ ! "$PORTAINER_URL" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
-                print_error "URL inválida"
-                sleep 2
-                clear
-                continue
-            fi
-            
-            # Se chegou aqui, todas as informações estão corretas
-            clear
-            print_message "Iniciando instalação..."
             break
-        else
-            # Se respondeu não, limpa a tela e recomeça
-            clear
-            print_message "Configuração Inicial"
-            echo ""
-            echo -e "${GREEN}Vamos coletar algumas informações antes de iniciar a instalação${NC}"
-            echo ""
         fi
+        clear
     done
 }
 
-# Instala o Traefik
+## Função para criar rede Docker
+create_network() {
+    echo -e "${azul}Criando rede Docker...${reset}"
+    if ! docker network ls | grep -q "$NETWORK_NAME"; then
+        docker network create -d overlay --attachable "$NETWORK_NAME"
+        echo -e "${verde}Rede $NETWORK_NAME criada com sucesso!${reset}"
+    else
+        echo -e "${amarelo}Rede $NETWORK_NAME já existe${reset}"
+    fi
+}
+
+## Função para instalar Traefik
 install_traefik() {
-    print_message "Instalando Traefik..."
+    echo -e "${azul}Instalando Traefik...${reset}"
     
-    # Cria diretório para o Traefik
     mkdir -p /opt/traefik
     
-    # Deploy Traefik
     docker stack deploy -c <(cat <<EOF
 version: '3.8'
 services:
@@ -265,19 +169,15 @@ networks:
   ${NETWORK_NAME}:
     external: true
 EOF
-) traefik || {
-    print_error "Falha ao instalar o Traefik"
-    exit 1
+) traefik
+
+    echo -e "${verde}Traefik instalado com sucesso!${reset}"
 }
 
-    print_success "Traefik instalado com sucesso!"
-}
-
-# Instala o Portainer
+## Função para instalar Portainer
 install_portainer() {
-    print_message "Instalando Portainer..."
+    echo -e "${azul}Instalando Portainer...${reset}"
     
-    # Deploy Portainer
     docker stack deploy -c <(cat <<EOF
 version: '3.8'
 services:
@@ -307,45 +207,24 @@ networks:
   ${NETWORK_NAME}:
     external: true
 EOF
-) portainer || {
-    print_error "Falha ao instalar o Portainer"
-    exit 1
+) portainer
+
+    echo -e "${verde}Portainer instalado com sucesso!${reset}"
 }
 
-    print_success "Portainer instalado com sucesso!"
-}
-
-# Modifique a função main para usar a nova função
+## Função principal
 main() {
-    clear
     check_root
-    
-    # Coleta todas as informações primeiro
-    get_user_inputs
-    
-    print_message "Iniciando instalação..."
-    
-    # Instala Docker e inicializa Swarm
+    detect_os
+    get_inputs
     install_docker
     init_swarm
-    
-    # Cria a rede
-    if ! docker network ls | grep -q "$NETWORK_NAME"; then
-        if ! docker network create -d overlay --attachable "$NETWORK_NAME"; then
-            print_error "Falha ao criar a rede"
-            exit 1
-        fi
-        print_success "Rede $NETWORK_NAME criada com sucesso!"
-    else
-        print_message "Rede $NETWORK_NAME já existe"
-    fi
-    
-    # Instala os serviços
+    create_network
     install_traefik
     install_portainer
     
-    print_success "Instalação concluída!"
-    echo -e "${GREEN}Acesse o Portainer em: https://${PORTAINER_URL}${NC}"
+    echo -e "${verde}Instalação concluída!${reset}"
+    echo -e "${verde}Acesse o Portainer em: https://${PORTAINER_URL}${reset}"
 }
 
 # Executa o script
