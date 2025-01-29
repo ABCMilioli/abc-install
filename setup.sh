@@ -157,7 +157,7 @@ get_network_name() {
         
         if [ -z "$NETWORK_NAME" ]; then
             print_error "O nome da rede não pode estar vazio"
-            sleep 2
+            sleep 5
         fi
     done
     
@@ -205,6 +205,7 @@ get_traefik_email() {
         if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
             if [ -z "$email" ] || [[ ! "$email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
                 print_error "Email inválido"
+                sleep 5
                 continue
             fi
             
@@ -239,6 +240,7 @@ get_portainer_url() {
         if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
             if [ -z "$portainer_url" ] || [[ ! "$portainer_url" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
                 print_error "URL inválida"
+                sleep 5
                 continue
             fi
             
