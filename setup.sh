@@ -155,70 +155,51 @@ get_user_inputs() {
     echo -e "A rede será usada para comunicação entre Traefik e Portainer"
     echo -e "Exemplo: traefik-public"
     echo ""
-    NETWORK_NAME=""
-    until [ ! -z "$NETWORK_NAME" ]; do
-        read -p "Digite o nome da rede: " NETWORK_NAME
-        if [ -z "$NETWORK_NAME" ]; then
-            print_error "O nome da rede não pode estar vazio"
-            sleep 2
-        fi
-    done
-    echo ""
+    read -p "Digite o nome da rede: " NETWORK_NAME
+    
+    # Validação do nome da rede
+    if [ -z "$NETWORK_NAME" ]; then
+        print_error "O nome da rede não pode estar vazio"
+        exit 1
+    fi
     
     # Email para Traefik
-    echo -e "${GREEN}2. Email para certificados SSL${NC}"
+    echo -e "\n${GREEN}2. Email para certificados SSL${NC}"
     echo -e "O Traefik precisa de um email válido para gerar certificados SSL"
     echo -e "Exemplo: seu.email@dominio.com"
     echo ""
-    TRAEFIK_EMAIL=""
-    valid_email=false
-    until [ "$valid_email" = true ]; do
-        read -p "Digite seu email: " TRAEFIK_EMAIL
-        if [[ "$TRAEFIK_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
-            valid_email=true
-        else
-            print_error "Email inválido"
-            sleep 2
-        fi
-    done
-    echo ""
+    read -p "Digite seu email: " TRAEFIK_EMAIL
+    
+    # Validação do email
+    if [[ ! "$TRAEFIK_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+        print_error "Email inválido"
+        exit 1
+    fi
     
     # URL do Portainer
-    echo -e "${GREEN}3. URL do Portainer${NC}"
+    echo -e "\n${GREEN}3. URL do Portainer${NC}"
     echo -e "O Portainer precisa de uma URL para acesso via navegador"
     echo -e "Exemplo: portainer.seudominio.com"
     echo ""
-    PORTAINER_URL=""
-    valid_url=false
-    until [ "$valid_url" = true ]; do
-        read -p "Digite a URL do Portainer: " PORTAINER_URL
-        if [[ "$PORTAINER_URL" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
-            valid_url=true
-        else
-            print_error "URL inválida"
-            sleep 2
-        fi
-    done
-    echo ""
+    read -p "Digite a URL do Portainer: " PORTAINER_URL
+    
+    # Validação da URL
+    if [[ ! "$PORTAINER_URL" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+        print_error "URL inválida"
+        exit 1
+    fi
     
     # Confirma todas as informações
-    echo -e "${GREEN}Confirme as informações:${NC}"
+    echo -e "\n${GREEN}Confirme as informações:${NC}"
     echo -e "Nome da rede: ${GREEN}$NETWORK_NAME${NC}"
     echo -e "Email: ${GREEN}$TRAEFIK_EMAIL${NC}"
     echo -e "URL do Portainer: ${GREEN}$PORTAINER_URL${NC}"
     echo ""
+    read -p "As informações estão corretas? [y/n]: " confirm
     
-    while true; do
-        read -p "As informações estão corretas? [y/n]: " confirm
-        case $confirm in
-            [Yy]* ) break;;
-            [Nn]* ) 
-                clear
-                get_user_inputs
-                return;;
-            * ) echo "Por favor, responda y ou n.";;
-        esac
-    done
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        get_user_inputs
+    fi
 }
 
 # Instala o Traefik
