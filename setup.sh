@@ -77,44 +77,63 @@ init_swarm() {
     fi
 }
 
-## Função para coletar informações
-get_inputs() {
+## Função para coletar nome da rede
+get_network_name() {
     clear
-    echo -e "${azul}Configuração Inicial${reset}"
+    echo -e "${azul}Configuração da Rede${reset}"
     echo ""
-    
-    # Nome da rede
     echo -e "\e[97mPasso${amarelo} 1/3${reset}"
     echo -en "${amarelo}Digite o nome da rede Docker (ex: traefik-public): ${reset}"
     read -r NETWORK_NAME
     echo ""
-    
-    # Email
+}
+
+## Função para coletar email
+get_traefik_email() {
+    clear
+    echo -e "${azul}Configuração do Email${reset}"
+    echo ""
     echo -e "\e[97mPasso${amarelo} 2/3${reset}"
     echo -en "${amarelo}Digite o email para certificados SSL (ex: seu.email@dominio.com): ${reset}"
     read -r TRAEFIK_EMAIL
     echo ""
-    
-    # URL
+}
+
+## Função para coletar URL
+get_portainer_url() {
+    clear
+    echo -e "${azul}Configuração do Portainer${reset}"
+    echo ""
     echo -e "\e[97mPasso${amarelo} 3/3${reset}"
     echo -en "${amarelo}Digite a URL para o Portainer (ex: portainer.seudominio.com): ${reset}"
     read -r PORTAINER_URL
     echo ""
-    
-    # Mostra as informações para confirmação
+}
+
+## Função para confirmar informações
+confirm_inputs() {
+    clear
     echo -e "${azul}Confirme as informações:${reset}"
     echo ""
     echo -e "${amarelo}Nome da rede:${reset} $NETWORK_NAME"
     echo -e "${amarelo}Email:${reset} $TRAEFIK_EMAIL"
     echo -e "${amarelo}URL do Portainer:${reset} $PORTAINER_URL"
     echo ""
-    
     read -p "As informações estão corretas? (Y/N): " confirmacao
+    
     if [ "$confirmacao" = "Y" ] || [ "$confirmacao" = "y" ]; then
         return 0
     else
         exec "$0"
     fi
+}
+
+## Função principal de coleta
+get_inputs() {
+    get_network_name
+    get_traefik_email
+    get_portainer_url
+    confirm_inputs
 }
 
 ## Função para criar rede Docker
