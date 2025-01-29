@@ -202,39 +202,6 @@ get_user_inputs() {
 
 # Instala o Traefik
 install_traefik() {
-    print_message "Configurando Traefik..."
-    echo ""
-    echo -e "${GREEN}O Traefik precisa de um email válido para gerar certificados SSL${NC}"
-    echo -e "${GREEN}Exemplo: seu.email@dominio.com${NC}"
-    echo ""
-    
-    while true; do
-        read -p "Digite seu email para o Let's Encrypt: " email
-        echo ""
-        
-        # Verifica se o email está vazio
-        if [ -z "$email" ]; then
-            print_error "O email não pode estar vazio"
-            continue
-        fi
-        
-        # Validação básica de email
-        if [[ ! "$email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
-            print_error "Por favor, digite um email válido"
-            continue
-        fi
-        
-        # Confirma com o usuário
-        read -p "Confirma o email '$email'? (y/n): " confirm
-        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
-            break
-        else
-            echo "Ok, vamos tentar novamente."
-            continue
-        fi
-    done
-    
-    echo ""
     print_message "Instalando Traefik..."
     
     # Cria diretório para o Traefik
@@ -255,7 +222,7 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.letsencrypt.acme.email=${email}"
+      - "--certificatesresolvers.letsencrypt.acme.email=${TRAEFIK_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/certificates/acme.json"
     ports:
       - "80:80"
@@ -283,45 +250,10 @@ EOF
 }
 
     print_success "Traefik instalado com sucesso!"
-    echo ""
-    read -p "Pressione ENTER para continuar com a instalação..."
 }
 
 # Instala o Portainer
 install_portainer() {
-    print_message "Configurando Portainer..."
-    echo ""
-    echo -e "${GREEN}O Portainer precisa de uma URL para acesso via navegador${NC}"
-    echo -e "${GREEN}Exemplo: portainer.seudominio.com${NC}"
-    echo ""
-    
-    while true; do
-        read -p "Digite a URL para acesso ao Portainer: " portainer_url
-        echo ""
-        
-        # Verifica se a URL está vazia
-        if [ -z "$portainer_url" ]; then
-            print_error "A URL não pode estar vazia"
-            continue
-        fi
-        
-        # Validação básica de domínio
-        if [[ ! "$portainer_url" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
-            print_error "Por favor, digite uma URL válida"
-            continue
-        fi
-        
-        # Confirma com o usuário
-        read -p "Confirma a URL '$portainer_url'? (y/n): " confirm
-        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
-            break
-        else
-            echo "Ok, vamos tentar novamente."
-            continue
-        fi
-    done
-    
-    echo ""
     print_message "Instalando Portainer..."
     
     # Deploy Portainer
@@ -342,7 +274,7 @@ services:
           - node.role == manager
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.portainer.rule=Host(\`${portainer_url}\`)"
+        - "traefik.http.routers.portainer.rule=Host(\`${PORTAINER_URL}\`)"
         - "traefik.http.routers.portainer.entrypoints=websecure"
         - "traefik.http.routers.portainer.tls.certresolver=letsencrypt"
         - "traefik.http.services.portainer.loadbalancer.server.port=9000"
@@ -360,8 +292,6 @@ EOF
 }
 
     print_success "Portainer instalado com sucesso!"
-    echo ""
-    read -p "Pressione ENTER para continuar..."
 }
 
 # Modifique a função main para usar a nova função
