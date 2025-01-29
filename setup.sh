@@ -86,59 +86,35 @@ get_inputs() {
     # Nome da rede
     echo -e "\e[97mPasso${amarelo} 1/3${reset}"
     echo -en "${amarelo}Digite o nome da rede Docker (ex: traefik-public): ${reset}"
-    read NETWORK_NAME
-    while [ -z "$NETWORK_NAME" ]; do
-        echo -e "${vermelho}O nome da rede não pode estar vazio${reset}"
-        echo -en "${amarelo}Digite o nome da rede Docker (ex: traefik-public): ${reset}"
-        read NETWORK_NAME
-    done
+    read -r NETWORK_NAME
+    echo ""
     
     # Email
-    echo -e "\n\e[97mPasso${amarelo} 2/3${reset}"
+    echo -e "\e[97mPasso${amarelo} 2/3${reset}"
     echo -en "${amarelo}Digite o email para certificados SSL (ex: seu.email@dominio.com): ${reset}"
-    read TRAEFIK_EMAIL
-    while [ -z "$TRAEFIK_EMAIL" ] || ! [[ "$TRAEFIK_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; do
-        if [ -z "$TRAEFIK_EMAIL" ]; then
-            echo -e "${vermelho}O email não pode estar vazio${reset}"
-        else
-            echo -e "${vermelho}Email inválido${reset}"
-        fi
-        echo -en "${amarelo}Digite o email para certificados SSL: ${reset}"
-        read TRAEFIK_EMAIL
-    done
+    read -r TRAEFIK_EMAIL
+    echo ""
     
     # URL
-    echo -e "\n\e[97mPasso${amarelo} 3/3${reset}"
+    echo -e "\e[97mPasso${amarelo} 3/3${reset}"
     echo -en "${amarelo}Digite a URL para o Portainer (ex: portainer.seudominio.com): ${reset}"
-    read PORTAINER_URL
-    while [ -z "$PORTAINER_URL" ] || ! [[ "$PORTAINER_URL" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; do
-        if [ -z "$PORTAINER_URL" ]; then
-            echo -e "${vermelho}A URL não pode estar vazia${reset}"
-        else
-            echo -e "${vermelho}URL inválida${reset}"
-        fi
-        echo -en "${amarelo}Digite a URL para o Portainer: ${reset}"
-        read PORTAINER_URL
-    done
+    read -r PORTAINER_URL
+    echo ""
     
-    # Confirma as informações
-    echo -e "\n${azul}Confirme as informações:${reset}"
+    # Mostra as informações para confirmação
+    echo -e "${azul}Confirme as informações:${reset}"
+    echo ""
     echo -e "${amarelo}Nome da rede:${reset} $NETWORK_NAME"
     echo -e "${amarelo}Email:${reset} $TRAEFIK_EMAIL"
     echo -e "${amarelo}URL do Portainer:${reset} $PORTAINER_URL"
     echo ""
     
-    while true; do
-        read -p "As informações estão corretas? (Y/N): " confirmacao
-        case $confirmacao in
-            [Yy]* ) return 0;;
-            [Nn]* ) 
-                clear
-                get_inputs
-                return;;
-            * ) echo "Por favor, responda Y ou N";;
-        esac
-    done
+    read -p "As informações estão corretas? (Y/N): " confirmacao
+    if [ "$confirmacao" = "Y" ] || [ "$confirmacao" = "y" ]; then
+        return 0
+    else
+        exec "$0"
+    fi
 }
 
 ## Função para criar rede Docker
