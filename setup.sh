@@ -83,77 +83,61 @@ get_inputs() {
     echo -e "${azul}Configuração Inicial${reset}"
     echo ""
     
-    # Variáveis para armazenar as informações
-    local network_name=""
-    local email=""
-    local url=""
-    
-    # Coleta o nome da rede
-    while [ -z "$network_name" ]; do
-        echo -e "\e[97mPasso${amarelo} 1/3${reset}"
+    # Nome da rede
+    echo -e "\e[97mPasso${amarelo} 1/3${reset}"
+    echo -en "${amarelo}Digite o nome da rede Docker (ex: traefik-public): ${reset}"
+    read NETWORK_NAME
+    while [ -z "$NETWORK_NAME" ]; do
+        echo -e "${vermelho}O nome da rede não pode estar vazio${reset}"
         echo -en "${amarelo}Digite o nome da rede Docker (ex: traefik-public): ${reset}"
-        read network_name
-        if [ -z "$network_name" ]; then
-            echo -e "${vermelho}O nome da rede não pode estar vazio${reset}"
-            sleep 2
-        fi
+        read NETWORK_NAME
     done
-    echo ""
     
-    # Coleta o email
-    while [ -z "$email" ]; do
-        echo -e "\e[97mPasso${amarelo} 2/3${reset}"
-        echo -en "${amarelo}Digite o email para certificados SSL (ex: seu.email@dominio.com): ${reset}"
-        read email
-        if [ -z "$email" ]; then
+    # Email
+    echo -e "\n\e[97mPasso${amarelo} 2/3${reset}"
+    echo -en "${amarelo}Digite o email para certificados SSL (ex: seu.email@dominio.com): ${reset}"
+    read TRAEFIK_EMAIL
+    while [ -z "$TRAEFIK_EMAIL" ] || ! [[ "$TRAEFIK_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; do
+        if [ -z "$TRAEFIK_EMAIL" ]; then
             echo -e "${vermelho}O email não pode estar vazio${reset}"
-            sleep 2
-        elif ! [[ "$email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+        else
             echo -e "${vermelho}Email inválido${reset}"
-            email=""
-            sleep 2
         fi
+        echo -en "${amarelo}Digite o email para certificados SSL: ${reset}"
+        read TRAEFIK_EMAIL
     done
-    echo ""
     
-    # Coleta a URL
-    while [ -z "$url" ]; do
-        echo -e "\e[97mPasso${amarelo} 3/3${reset}"
-        echo -en "${amarelo}Digite a URL para o Portainer (ex: portainer.seudominio.com): ${reset}"
-        read url
-        if [ -z "$url" ]; then
+    # URL
+    echo -e "\n\e[97mPasso${amarelo} 3/3${reset}"
+    echo -en "${amarelo}Digite a URL para o Portainer (ex: portainer.seudominio.com): ${reset}"
+    read PORTAINER_URL
+    while [ -z "$PORTAINER_URL" ] || ! [[ "$PORTAINER_URL" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; do
+        if [ -z "$PORTAINER_URL" ]; then
             echo -e "${vermelho}A URL não pode estar vazia${reset}"
-            sleep 2
-        elif ! [[ "$url" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+        else
             echo -e "${vermelho}URL inválida${reset}"
-            url=""
-            sleep 2
         fi
+        echo -en "${amarelo}Digite a URL para o Portainer: ${reset}"
+        read PORTAINER_URL
     done
+    
+    # Confirma as informações
+    echo -e "\n${azul}Confirme as informações:${reset}"
+    echo -e "${amarelo}Nome da rede:${reset} $NETWORK_NAME"
+    echo -e "${amarelo}Email:${reset} $TRAEFIK_EMAIL"
+    echo -e "${amarelo}URL do Portainer:${reset} $PORTAINER_URL"
     echo ""
     
-    # Mostra resumo e confirma
     while true; do
-        clear
-        echo -e "${azul}Confirme as informações:${reset}"
-        echo ""
-        echo -e "${amarelo}Nome da rede:${reset} $network_name"
-        echo -e "${amarelo}Email:${reset} $email"
-        echo -e "${amarelo}URL do Portainer:${reset} $url"
-        echo ""
         read -p "As informações estão corretas? (Y/N): " confirmacao
-        
-        if [ "$confirmacao" = "Y" ] || [ "$confirmacao" = "y" ]; then
-            # Atribui às variáveis globais
-            NETWORK_NAME="$network_name"
-            TRAEFIK_EMAIL="$email"
-            PORTAINER_URL="$url"
-            break
-        elif [ "$confirmacao" = "N" ] || [ "$confirmacao" = "n" ]; then
-            # Reinicia o processo
-            get_inputs
-            return
-        fi
+        case $confirmacao in
+            [Yy]* ) return 0;;
+            [Nn]* ) 
+                clear
+                get_inputs
+                return;;
+            * ) echo "Por favor, responda Y ou N";;
+        esac
     done
 }
 
