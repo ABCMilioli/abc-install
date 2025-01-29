@@ -79,6 +79,8 @@ init_swarm() {
 
 ## Função para coletar informações
 get_inputs() {
+    exec < /dev/tty
+    
     # Nome da rede
     clear
     echo -e "${azul}Configuração da Rede${reset}"
@@ -114,6 +116,7 @@ get_inputs() {
     read -p "As informações estão corretas? (Y/N): " confirmacao
     
     if [ "$confirmacao" = "Y" ] || [ "$confirmacao" = "y" ]; then
+        exec <&-  # Fecha o /dev/tty
         return 0
     else
         get_inputs
