@@ -49,6 +49,9 @@ install_docker() {
     
     print_message "Instalando Docker..."
     
+    # Remove versões antigas se existirem
+    apt-get remove -y docker docker-engine docker.io containerd runc || true
+    
     # Atualiza os pacotes
     apt-get update
     
@@ -61,22 +64,49 @@ install_docker() {
         lsb-release
 
     # Adiciona a chave GPG oficial do Docker
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    mkdir -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
     # Configura o repositório stable
     echo \
-        "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
         $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-    # Instala o Docker Engine
+    # Atualiza o apt com o novo repositório
     apt-get update
-    apt-get install -y docker-ce docker-ce-cli containerd.io
 
-    # Inicia e habilita o Docker
-    systemctl start docker
-    systemctl enable docker
+    # Instala o Docker Engine
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+    # Verifica se o Docker foi instalado corretamente
+    if ! systemctl is-active --quiet docker; then
+        systemctl start docker
+    fi
+    
+    if ! systemctl is-enabled --quiet docker; then
+        systemctl enable docker
+    fi
+
+    # Verifica novamente se o Docker está funcionando
+    if ! docker info &> /dev/null; then
+        print_error "Falha na instalação do Docker. Tentando método alternativo..."
+        
+        # Método alternativo de instalação
+        curl -fsSL https://get.docker.com | sh
+        
+        systemctl start docker
+        systemctl enable docker
+        
+        if ! docker info &> /dev/null; then
+            print_error "Falha na instalação do Docker"
+            exit 1
+        fi
+    fi
 
     print_success "Docker instalado com sucesso!"
+    
+    # Pequena pausa para garantir que o serviço está totalmente iniciado
+    sleep 5
 }
 
 # Inicializa o Docker Swarm
