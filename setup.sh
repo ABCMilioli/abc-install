@@ -83,36 +83,77 @@ get_inputs() {
     echo -e "${azul}Configuração Inicial${reset}"
     echo ""
     
-    ## Inicia um Loop até os dados estarem certos
-    while true; do
-        ## Nome da rede Docker
+    # Variáveis para armazenar as informações
+    local network_name=""
+    local email=""
+    local url=""
+    
+    # Coleta o nome da rede
+    while [ -z "$network_name" ]; do
         echo -e "\e[97mPasso${amarelo} 1/3${reset}"
-        echo -en "${amarelo}Digite o nome da rede Docker (ex: traefik-public): ${reset}" && read -r NETWORK_NAME
-        echo ""
-        
-        ## Email para Traefik
+        echo -en "${amarelo}Digite o nome da rede Docker (ex: traefik-public): ${reset}"
+        read network_name
+        if [ -z "$network_name" ]; then
+            echo -e "${vermelho}O nome da rede não pode estar vazio${reset}"
+            sleep 2
+        fi
+    done
+    echo ""
+    
+    # Coleta o email
+    while [ -z "$email" ]; do
         echo -e "\e[97mPasso${amarelo} 2/3${reset}"
-        echo -en "${amarelo}Digite o email para certificados SSL (ex: seu.email@dominio.com): ${reset}" && read -r TRAEFIK_EMAIL
-        echo ""
-        
-        ## URL para Portainer
+        echo -en "${amarelo}Digite o email para certificados SSL (ex: seu.email@dominio.com): ${reset}"
+        read email
+        if [ -z "$email" ]; then
+            echo -e "${vermelho}O email não pode estar vazio${reset}"
+            sleep 2
+        elif ! [[ "$email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+            echo -e "${vermelho}Email inválido${reset}"
+            email=""
+            sleep 2
+        fi
+    done
+    echo ""
+    
+    # Coleta a URL
+    while [ -z "$url" ]; do
         echo -e "\e[97mPasso${amarelo} 3/3${reset}"
-        echo -en "${amarelo}Digite a URL para o Portainer (ex: portainer.seudominio.com): ${reset}" && read -r PORTAINER_URL
-        echo ""
-        
-        ## Mostra as informações para confirmação
+        echo -en "${amarelo}Digite a URL para o Portainer (ex: portainer.seudominio.com): ${reset}"
+        read url
+        if [ -z "$url" ]; then
+            echo -e "${vermelho}A URL não pode estar vazia${reset}"
+            sleep 2
+        elif ! [[ "$url" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+            echo -e "${vermelho}URL inválida${reset}"
+            url=""
+            sleep 2
+        fi
+    done
+    echo ""
+    
+    # Mostra resumo e confirma
+    while true; do
+        clear
         echo -e "${azul}Confirme as informações:${reset}"
         echo ""
-        echo -e "${amarelo}Nome da rede:${reset} $NETWORK_NAME"
-        echo -e "${amarelo}Email:${reset} $TRAEFIK_EMAIL"
-        echo -e "${amarelo}URL do Portainer:${reset} $PORTAINER_URL"
+        echo -e "${amarelo}Nome da rede:${reset} $network_name"
+        echo -e "${amarelo}Email:${reset} $email"
+        echo -e "${amarelo}URL do Portainer:${reset} $url"
         echo ""
-        
         read -p "As informações estão corretas? (Y/N): " confirmacao
+        
         if [ "$confirmacao" = "Y" ] || [ "$confirmacao" = "y" ]; then
+            # Atribui às variáveis globais
+            NETWORK_NAME="$network_name"
+            TRAEFIK_EMAIL="$email"
+            PORTAINER_URL="$url"
             break
+        elif [ "$confirmacao" = "N" ] || [ "$confirmacao" = "n" ]; then
+            # Reinicia o processo
+            get_inputs
+            return
         fi
-        clear
     done
 }
 
