@@ -145,30 +145,84 @@ init_swarm() {
 # Cria rede overlay
 create_network() {
     print_message "Configurando rede..."
+    echo ""
+    echo -e "${GREEN}A rede será usada para comunicação entre Traefik e Portainer${NC}"
+    echo -e "${GREEN}Exemplo de nome: traefik-public${NC}"
+    echo ""
     
     while true; do
-        read -p "Digite o nome da rede: " NETWORK_NAME
+        read -p "Digite o nome da rede que deseja criar: " NETWORK_NAME
+        echo ""
         
-        # Verifica se a rede já existe
-        if docker network ls | grep -q "$NETWORK_NAME"; then
-            print_message "Rede $NETWORK_NAME já existe"
-            break
-        else
-            # Cria a rede overlay
-            if docker network create -d overlay --attachable "$NETWORK_NAME"; then
-                print_success "Rede $NETWORK_NAME criada com sucesso!"
+        # Verifica se o nome da rede está vazio
+        if [ -z "$NETWORK_NAME" ]; then
+            print_error "O nome da rede não pode estar vazio"
+            continue
+        fi
+        
+        # Confirma com o usuário
+        read -p "Confirma o nome da rede '$NETWORK_NAME'? (y/n): " confirm
+        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+            # Verifica se a rede já existe
+            if docker network ls | grep -q "$NETWORK_NAME"; then
+                print_message "Rede $NETWORK_NAME já existe"
                 break
             else
-                print_error "Falha ao criar a rede. Tente outro nome."
+                # Cria a rede overlay
+                if docker network create -d overlay --attachable "$NETWORK_NAME"; then
+                    print_success "Rede $NETWORK_NAME criada com sucesso!"
+                    break
+                else
+                    print_error "Falha ao criar a rede. Tente outro nome."
+                fi
             fi
+        else
+            echo "Ok, vamos tentar novamente."
+            continue
         fi
     done
+    
+    # Pausa para o usuário ver o resultado
+    echo ""
+    read -p "Pressione ENTER para continuar com a instalação..."
 }
 
 # Instala o Traefik
 install_traefik() {
     print_message "Configurando Traefik..."
-    read -p "Digite seu email para o Let's Encrypt: " email
+    echo ""
+    echo -e "${GREEN}O Traefik precisa de um email válido para gerar certificados SSL${NC}"
+    echo -e "${GREEN}Exemplo: seu.email@dominio.com${NC}"
+    echo ""
+    
+    while true; do
+        read -p "Digite seu email para o Let's Encrypt: " email
+        echo ""
+        
+        # Verifica se o email está vazio
+        if [ -z "$email" ]; then
+            print_error "O email não pode estar vazio"
+            continue
+        fi
+        
+        # Validação básica de email
+        if [[ ! "$email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+            print_error "Por favor, digite um email válido"
+            continue
+        fi
+        
+        # Confirma com o usuário
+        read -p "Confirma o email '$email'? (y/n): " confirm
+        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+            break
+        else
+            echo "Ok, vamos tentar novamente."
+            continue
+        fi
+    done
+    
+    echo ""
+    print_message "Instalando Traefik..."
     
     # Cria diretório para o Traefik
     mkdir -p /opt/traefik
@@ -216,12 +270,46 @@ EOF
 }
 
     print_success "Traefik instalado com sucesso!"
+    echo ""
+    read -p "Pressione ENTER para continuar com a instalação..."
 }
 
 # Instala o Portainer
 install_portainer() {
     print_message "Configurando Portainer..."
-    read -p "Digite a URL para acesso ao Portainer (ex: portainer.seudominio.com): " portainer_url
+    echo ""
+    echo -e "${GREEN}O Portainer precisa de uma URL para acesso via navegador${NC}"
+    echo -e "${GREEN}Exemplo: portainer.seudominio.com${NC}"
+    echo ""
+    
+    while true; do
+        read -p "Digite a URL para acesso ao Portainer: " portainer_url
+        echo ""
+        
+        # Verifica se a URL está vazia
+        if [ -z "$portainer_url" ]; then
+            print_error "A URL não pode estar vazia"
+            continue
+        fi
+        
+        # Validação básica de domínio
+        if [[ ! "$portainer_url" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+            print_error "Por favor, digite uma URL válida"
+            continue
+        fi
+        
+        # Confirma com o usuário
+        read -p "Confirma a URL '$portainer_url'? (y/n): " confirm
+        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+            break
+        else
+            echo "Ok, vamos tentar novamente."
+            continue
+        fi
+    done
+    
+    echo ""
+    print_message "Instalando Portainer..."
     
     # Deploy Portainer
     docker stack deploy -c <(cat <<EOF
@@ -259,6 +347,8 @@ EOF
 }
 
     print_success "Portainer instalado com sucesso!"
+    echo ""
+    read -p "Pressione ENTER para continuar..."
 }
 
 # Função principal
