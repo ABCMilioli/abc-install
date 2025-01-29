@@ -158,6 +158,8 @@ get_user_inputs() {
         echo -e "Exemplo: traefik-public"
         echo ""
         read -p "Digite o nome da rede: " NETWORK_NAME
+        echo ""
+        sleep 1
         
         # Passo 2 - Email
         clear
@@ -167,6 +169,8 @@ get_user_inputs() {
         echo -e "Exemplo: seu.email@dominio.com"
         echo ""
         read -p "Digite seu email: " TRAEFIK_EMAIL
+        echo ""
+        sleep 1
         
         # Passo 3 - URL
         clear
@@ -176,6 +180,8 @@ get_user_inputs() {
         echo -e "Exemplo: portainer.seudominio.com"
         echo ""
         read -p "Digite a URL do Portainer: " PORTAINER_URL
+        echo ""
+        sleep 1
         
         # Mostra resumo das informações
         clear
@@ -187,8 +193,8 @@ get_user_inputs() {
         echo ""
         read -p "As informações estão corretas? [y/n]: " confirm
         
+        # Valida as informações apenas se confirmado
         if [[ "$confirm" =~ ^[Yy]$ ]]; then
-            # Valida as informações
             if [ -z "$NETWORK_NAME" ]; then
                 print_error "O nome da rede não pode estar vazio"
                 sleep 2
@@ -208,7 +214,7 @@ get_user_inputs() {
             fi
             
             # Se chegou aqui, todas as informações estão corretas
-            break
+            return 0
         fi
         
         # Se respondeu não, limpa a tela e recomeça
