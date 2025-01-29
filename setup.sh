@@ -151,38 +151,56 @@ get_user_inputs() {
     echo ""
     
     # Nome da rede
-    echo -e "${GREEN}1. Nome da rede Docker${NC}"
-    echo -e "A rede será usada para comunicação entre Traefik e Portainer"
-    echo -e "Exemplo: traefik-public"
-    echo ""
-    read -p "Digite o nome da rede: " NETWORK_NAME
-    while [ -z "$NETWORK_NAME" ]; do
-        print_error "O nome da rede não pode estar vazio"
+    while true; do
+        echo -e "${GREEN}1. Nome da rede Docker${NC}"
+        echo -e "A rede será usada para comunicação entre Traefik e Portainer"
+        echo -e "Exemplo: traefik-public"
+        echo ""
         read -p "Digite o nome da rede: " NETWORK_NAME
+        
+        if [ ! -z "$NETWORK_NAME" ]; then
+            break
+        fi
+        
+        print_error "O nome da rede não pode estar vazio"
+        sleep 2
+        clear
     done
     echo ""
     
     # Email para Traefik
-    echo -e "${GREEN}2. Email para certificados SSL${NC}"
-    echo -e "O Traefik precisa de um email válido para gerar certificados SSL"
-    echo -e "Exemplo: seu.email@dominio.com"
-    echo ""
-    read -p "Digite seu email: " TRAEFIK_EMAIL
-    while [[ ! "$TRAEFIK_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; do
-        print_error "Email inválido"
+    while true; do
+        echo -e "${GREEN}2. Email para certificados SSL${NC}"
+        echo -e "O Traefik precisa de um email válido para gerar certificados SSL"
+        echo -e "Exemplo: seu.email@dominio.com"
+        echo ""
         read -p "Digite seu email: " TRAEFIK_EMAIL
+        
+        if [[ "$TRAEFIK_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+            break
+        fi
+        
+        print_error "Email inválido"
+        sleep 2
+        clear
     done
     echo ""
     
     # URL do Portainer
-    echo -e "${GREEN}3. URL do Portainer${NC}"
-    echo -e "O Portainer precisa de uma URL para acesso via navegador"
-    echo -e "Exemplo: portainer.seudominio.com"
-    echo ""
-    read -p "Digite a URL do Portainer: " PORTAINER_URL
-    while [[ ! "$PORTAINER_URL" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; do
-        print_error "URL inválida"
+    while true; do
+        echo -e "${GREEN}3. URL do Portainer${NC}"
+        echo -e "O Portainer precisa de uma URL para acesso via navegador"
+        echo -e "Exemplo: portainer.seudominio.com"
+        echo ""
         read -p "Digite a URL do Portainer: " PORTAINER_URL
+        
+        if [[ "$PORTAINER_URL" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+            break
+        fi
+        
+        print_error "URL inválida"
+        sleep 2
+        clear
     done
     echo ""
     
@@ -196,7 +214,6 @@ get_user_inputs() {
     
     if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
         get_user_inputs
-        return
     fi
 }
 
