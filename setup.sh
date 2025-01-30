@@ -97,11 +97,8 @@ init_swarm() {
     fi
 }
 
-## Função para coletar informações
-get_inputs() {
-    exec < /dev/tty
-    
-    # Banner
+## Função para mostrar o banner
+show_banner() {
     clear
     echo -e "
      █████╗ ██████╗  ██████╗    ██████╗  █████╗     
@@ -121,10 +118,14 @@ get_inputs() {
                Auto Instalador de Docker Traefik e Portainer
                            Por Robson Milioli
     "
-    sleep 2
+}
+
+## Função para coletar informações
+get_inputs() {
+    exec < /dev/tty
     
     # Nome da rede
-    clear
+    show_banner
     echo -e "${azul}Configuração da Rede${reset}"
     echo ""
     echo -e "\e[97mPasso${amarelo} 1/3${reset}"
@@ -132,7 +133,7 @@ get_inputs() {
     read NETWORK_NAME
     
     # Email
-    clear
+    show_banner
     echo -e "${azul}Configuração do Email${reset}"
     echo ""
     echo -e "\e[97mPasso${amarelo} 2/3${reset}"
@@ -140,7 +141,7 @@ get_inputs() {
     read TRAEFIK_EMAIL
     
     # URL
-    clear
+    show_banner
     echo -e "${azul}Configuração do Portainer${reset}"
     echo ""
     echo -e "\e[97mPasso${amarelo} 3/3${reset}"
@@ -148,7 +149,7 @@ get_inputs() {
     read PORTAINER_URL
     
     # Confirma
-    clear
+    show_banner
     echo -e "${azul}Confirme as informações:${reset}"
     echo ""
     echo -e "${amarelo}Nome da rede:${reset} $NETWORK_NAME"
