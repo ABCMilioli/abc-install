@@ -129,24 +129,42 @@ get_inputs() {
     echo -e "${azul}Configuração da Rede${reset}"
     echo ""
     echo -e "\e[97mPasso${amarelo} 1/3${reset}"
-    echo -en "${amarelo}Digite o nome da rede Docker (ex: traefik-public): ${reset}"
-    read NETWORK_NAME
+    echo -e "${amarelo}Digite o nome da rede Docker (ex: traefik-public)${reset}"
+    echo -e "${vermelho}Para cancelar a instalação digite: exit${reset}"
+    echo ""
+    read -p "> " NETWORK_NAME
+    if [ "$NETWORK_NAME" = "exit" ]; then
+        echo -e "${vermelho}Instalação cancelada pelo usuário${reset}"
+        exit 1
+    fi
     
     # Email
     show_banner
     echo -e "${azul}Configuração do Email${reset}"
     echo ""
     echo -e "\e[97mPasso${amarelo} 2/3${reset}"
-    echo -en "${amarelo}Digite o email para certificados SSL (ex: seu.email@dominio.com): ${reset}"
-    read TRAEFIK_EMAIL
+    echo -e "${amarelo}Digite o email para certificados SSL (ex: seu.email@dominio.com)${reset}"
+    echo -e "${vermelho}Para cancelar a instalação digite: exit${reset}"
+    echo ""
+    read -p "> " TRAEFIK_EMAIL
+    if [ "$TRAEFIK_EMAIL" = "exit" ]; then
+        echo -e "${vermelho}Instalação cancelada pelo usuário${reset}"
+        exit 1
+    fi
     
     # URL
     show_banner
     echo -e "${azul}Configuração do Portainer${reset}"
     echo ""
     echo -e "\e[97mPasso${amarelo} 3/3${reset}"
-    echo -en "${amarelo}Digite a URL para o Portainer (ex: portainer.seudominio.com): ${reset}"
-    read PORTAINER_URL
+    echo -e "${amarelo}Digite a URL para o Portainer (ex: portainer.seudominio.com)${reset}"
+    echo -e "${vermelho}Para cancelar a instalação digite: exit${reset}"
+    echo ""
+    read -p "> " PORTAINER_URL
+    if [ "$PORTAINER_URL" = "exit" ]; then
+        echo -e "${vermelho}Instalação cancelada pelo usuário${reset}"
+        exit 1
+    fi
     
     # Confirma
     show_banner
@@ -156,14 +174,28 @@ get_inputs() {
     echo -e "${amarelo}Email:${reset} $TRAEFIK_EMAIL"
     echo -e "${amarelo}URL do Portainer:${reset} $PORTAINER_URL"
     echo ""
-    read -p "As informações estão corretas? (Y/N): " confirmacao
+    echo -e "${vermelho}Para cancelar a instalação digite: exit${reset}"
+    echo ""
+    read -p "As informações estão corretas? (Y/N/exit): " confirmacao
     
-    if [ "$confirmacao" = "Y" ] || [ "$confirmacao" = "y" ]; then
-        exec <&-  # Fecha o /dev/tty
-        return 0
-    else
-        get_inputs
-    fi
+    case $confirmacao in
+        [Yy]* )
+            exec <&-  # Fecha o /dev/tty
+            return 0
+            ;;
+        [Nn]* )
+            get_inputs
+            ;;
+        "exit" )
+            echo -e "${vermelho}Instalação cancelada pelo usuário${reset}"
+            exit 1
+            ;;
+        * )
+            echo -e "${vermelho}Opção inválida${reset}"
+            sleep 2
+            get_inputs
+            ;;
+    esac
 }
 
 ## Função para criar rede Docker
