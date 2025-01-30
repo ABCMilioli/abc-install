@@ -138,39 +138,71 @@ create_network() {
 install_traefik() {
     echo -e "${azul}Instalando Traefik...${reset}"
     
-    mkdir -p /opt/traefik
+    # Cria diretórios necessários
+    mkdir -p /var/log/traefik
+    
+    # Cria volumes externos
+    docker volume create volume_swarm_shared
+    docker volume create volume_swarm_certificates
     
     docker stack deploy -c <(cat <<EOF
-version: '3.8'
+version: "3.7"
+
 services:
   traefik:
-    image: traefik:latest
+    image: traefik:2.10.6
     command:
       - "--api.dashboard=true"
-      - "--providers.docker=true"
       - "--providers.docker.swarmMode=true"
-      - "--providers.docker.exposedByDefault=false"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=${NETWORK_NAME}"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
       - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.letsencrypt.acme.email=${TRAEFIK_EMAIL}"
-      - "--certificatesresolvers.letsencrypt.acme.storage=/certificates/acme.json"
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik-certificates:/certificates
-    networks:
-      - ${NETWORK_NAME}
+      - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencryptresolver.acme.email=${TRAEFIK_EMAIL}"
+      - "--certificatesresolvers.letsencryptresolver.acme.storage=/etc/traefik/letsencrypt/acme.json"
+      - "--log.level=DEBUG"
+      - "--log.format=common"
+      - "--log.filePath=/var/log/traefik/traefik.log"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access-log"
     deploy:
       placement:
         constraints:
           - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
+        - "traefik.http.middlewares.redirect-https.redirectscheme.permanent=true"
+        - "traefik.http.routers.http-catchall.rule=hostregexp(\`{host:.+}\`)"
+        - "traefik.http.routers.http-catchall.entrypoints=web"
+        - "traefik.http.routers.http-catchall.middlewares=redirect-https@docker"
+        - "traefik.http.routers.http-catchall.priority=1"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "vol_certificates:/etc/traefik/letsencrypt"
+    networks:
+      - ${NETWORK_NAME}
+    ports:
+      - target: 80
+        published: 80
+        mode: host
+      - target: 443
+        published: 443
+        mode: host
 
 volumes:
-  traefik-certificates:
+  vol_shared:
+    external: true
+    name: volume_swarm_shared
+  vol_certificates:
+    external: true
+    name: volume_swarm_certificates
 
 networks:
   ${NETWORK_NAME}:
@@ -185,34 +217,55 @@ EOF
 install_portainer() {
     echo -e "${azul}Instalando Portainer...${reset}"
     
+    # Cria volume externo para o Portainer
+    docker volume create portainer_data
+    
     docker stack deploy -c <(cat <<EOF
-version: '3.8'
+version: "3.7"
 services:
-  portainer:
-    image: portainer/portainer-ce:latest
-    command: -H unix:///var/run/docker.sock
+  agent:
+    image: portainer/agent:2.20.2
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    networks:
+      - ${NETWORK_NAME}
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.platform.os == linux]
+
+  portainer:
+    image: portainer/portainer-ce:2.20.2
+    command: -H tcp://tasks.agent:9001 --tlsskipverify
+    volumes:
       - portainer_data:/data
     networks:
       - ${NETWORK_NAME}
     deploy:
+      mode: replicated
+      replicas: 1
       placement:
-        constraints:
-          - node.role == manager
+        constraints: [node.role == manager]
       labels:
         - "traefik.enable=true"
+        - "traefik.docker.network=${NETWORK_NAME}"
         - "traefik.http.routers.portainer.rule=Host(\`${PORTAINER_URL}\`)"
         - "traefik.http.routers.portainer.entrypoints=websecure"
-        - "traefik.http.routers.portainer.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.portainer.priority=1"
+        - "traefik.http.routers.portainer.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.portainer.service=portainer"
         - "traefik.http.services.portainer.loadbalancer.server.port=9000"
-
-volumes:
-  portainer_data:
 
 networks:
   ${NETWORK_NAME}:
     external: true
+    attachable: true
+
+volumes:
+  portainer_data:
+    external: true
+    name: portainer_data
 EOF
 ) portainer
 
@@ -235,4 +288,5 @@ main() {
 }
 
 # Executa o script
+main 
 main 
