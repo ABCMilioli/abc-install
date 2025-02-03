@@ -358,10 +358,11 @@ main() {
     install_traefik
     install_portainer
     
-    echo -e "${verde}Instalação concluída!${reset}"
+    echo -e "${verde}Instalação concluída com sucesso!${reset}"
     echo -e "${verde}Acesse o Portainer em: https://${PORTAINER_URL}${reset}"
+    echo -e "${amarelo}Aguarde alguns minutos para que os certificados SSL sejam gerados${reset}"
+    echo -e "${amarelo}Em caso de problemas, verifique os logs com: docker service logs traefik_traefik${reset}"
 }
 
 # Executa o script
-main 
 main 
