@@ -124,11 +124,25 @@ show_banner() {
 get_inputs() {
     exec < /dev/tty
     
+    # Nome do Servidor
+    show_banner
+    echo -e "${azul}Configuração do Servidor${reset}"
+    echo ""
+    echo -e "\e[97mPasso${amarelo} 1/4${reset}"
+    echo -e "${amarelo}Digite o nome do servidor (ex: docker-prod)${reset}"
+    echo -e "${vermelho}Para cancelar a instalação digite: exit${reset}"
+    echo ""
+    read -p "> " SERVER_NAME
+    if [ "$SERVER_NAME" = "exit" ]; then
+        echo -e "${vermelho}Instalação cancelada pelo usuário${reset}"
+        exit 1
+    fi
+    
     # Nome da rede
     show_banner
     echo -e "${azul}Configuração da Rede${reset}"
     echo ""
-    echo -e "\e[97mPasso${amarelo} 1/3${reset}"
+    echo -e "\e[97mPasso${amarelo} 2/4${reset}"
     echo -e "${amarelo}Digite o nome da rede Docker (ex: traefik-public)${reset}"
     echo -e "${vermelho}Para cancelar a instalação digite: exit${reset}"
     echo ""
@@ -142,7 +156,7 @@ get_inputs() {
     show_banner
     echo -e "${azul}Configuração do Email${reset}"
     echo ""
-    echo -e "\e[97mPasso${amarelo} 2/3${reset}"
+    echo -e "\e[97mPasso${amarelo} 3/4${reset}"
     echo -e "${amarelo}Digite o email para certificados SSL (ex: seu.email@dominio.com)${reset}"
     echo -e "${vermelho}Para cancelar a instalação digite: exit${reset}"
     echo ""
@@ -156,7 +170,7 @@ get_inputs() {
     show_banner
     echo -e "${azul}Configuração do Portainer${reset}"
     echo ""
-    echo -e "\e[97mPasso${amarelo} 3/3${reset}"
+    echo -e "\e[97mPasso${amarelo} 4/4${reset}"
     echo -e "${amarelo}Digite a URL para o Portainer (ex: portainer.seudominio.com)${reset}"
     echo -e "${vermelho}Para cancelar a instalação digite: exit${reset}"
     echo ""
@@ -170,6 +184,7 @@ get_inputs() {
     show_banner
     echo -e "${azul}Confirme as informações:${reset}"
     echo ""
+    echo -e "${amarelo}Nome do Servidor:${reset} $SERVER_NAME"
     echo -e "${amarelo}Nome da rede:${reset} $NETWORK_NAME"
     echo -e "${amarelo}Email:${reset} $TRAEFIK_EMAIL"
     echo -e "${amarelo}URL do Portainer:${reset} $PORTAINER_URL"
@@ -196,6 +211,14 @@ get_inputs() {
             get_inputs
             ;;
     esac
+}
+
+## Função para configurar o nome do servidor
+setup_hostname() {
+    echo -e "${azul}Configurando nome do servidor...${reset}"
+    hostnamectl set-hostname "$SERVER_NAME"
+    echo "127.0.0.1 $SERVER_NAME" >> /etc/hosts
+    echo -e "${verde}Nome do servidor configurado: $SERVER_NAME${reset}"
 }
 
 ## Função para criar rede Docker
@@ -249,7 +272,7 @@ services:
     deploy:
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == ${SERVER_NAME}
       labels:
         - "traefik.enable=true"
         - "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
@@ -321,7 +344,7 @@ services:
       mode: replicated
       replicas: 1
       placement:
-        constraints: [node.role == manager]
+        constraints: [node.hostname == ${SERVER_NAME}]
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=${NETWORK_NAME}"
@@ -352,6 +375,7 @@ main() {
     check_root
     detect_os
     get_inputs
+    setup_hostname
     install_docker
     init_swarm
     create_network
@@ -359,6 +383,7 @@ main() {
     install_portainer
     
     echo -e "${verde}Instalação concluída com sucesso!${reset}"
+    echo -e "${verde}Nome do Servidor: $SERVER_NAME${reset}"
     echo -e "${verde}Acesse o Portainer em: https://${PORTAINER_URL}${reset}"
     echo -e "${amarelo}Aguarde alguns minutos para que os certificados SSL sejam gerados${reset}"
     echo -e "${amarelo}Em caso de problemas, verifique os logs com: docker service logs traefik_traefik${reset}"
