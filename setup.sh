@@ -129,7 +129,7 @@ get_inputs() {
     echo -e "${azul}Configuração do Servidor${reset}"
     echo ""
     echo -e "\e[97mPasso${amarelo} 1/4${reset}"
-    echo -e "${amarelo}Digite o nome do servidor (ex: docker-prod)${reset}"
+    echo -e "${amarelo}Digite o nome do servidor (ex: manager)${reset}"
     echo -e "${vermelho}Para cancelar a instalação digite: exit${reset}"
     echo ""
     read -p "> " SERVER_NAME
@@ -143,7 +143,7 @@ get_inputs() {
     echo -e "${azul}Configuração da Rede${reset}"
     echo ""
     echo -e "\e[97mPasso${amarelo} 2/4${reset}"
-    echo -e "${amarelo}Digite o nome da rede Docker (ex: traefik-public)${reset}"
+    echo -e "${amarelo}Digite o nome da rede Docker (ex: network_public)${reset}"
     echo -e "${vermelho}Para cancelar a instalação digite: exit${reset}"
     echo ""
     read -p "> " NETWORK_NAME
