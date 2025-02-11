@@ -9,6 +9,6 @@ curl -fsSL https://raw.githubusercontent.com/ABCMilioli/abc-install/master/setup
 
 
 
-```bash
+## Uso
 
 bash <(curl -sSL install.automacaodebaixocusto.com.br)
