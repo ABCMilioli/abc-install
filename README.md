@@ -3,7 +3,8 @@
 Script de instalação automatizada para Docker + Traefik + Portainer.
 
 
-```bash bash <(curl -sSL install.automacaodebaixocusto.com.br)```
+```bash 
+bash <(curl -sSL install.automacaodebaixocusto.com.br)```
 
 ## Uso
 
